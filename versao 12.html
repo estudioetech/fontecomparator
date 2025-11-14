@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador de Fontes - BY Estúdio E-Tech 2025</title>
+    <!-- Carrega o Tailwind CSS para estilização rápida e responsiva --><script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define a fonte Inter como padrão e permite classes customizadas */
+        :root {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilos customizados para o layout */
+        .sidebar {
+            /* Fixa a barra lateral */
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            max-height: 100vh;
+            transition: all 0.3s ease;
+        }
+        /* Ajuste para telas menores: sidebar se torna um topo */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                height: auto;
+                max-height: none;
+                width: 100%;
+                order: -1; /* Move para o topo em mobile */
+            }
+            .content-area {
+                padding-top: 0;
+            }
+        }
+        /* Força a barra de navegação a ficar no rodapé da área de conteúdo */
+        .pagination-footer {
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
+        /* Estilo para o elemento de detecção de fonte, escondido na tela */
+        #font-detector {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+            visibility: hidden;
+            white-space: nowrap;
+            font-size: 72px; /* Tamanho grande aumenta a precisão */
+        }
+        /* Fixa o tamanho da textarea da lista de fontes e remove redimensionamento */
+        #fontListInput {
+            resize: none; 
+            overflow-y: auto; 
+            height: 160px; /* Altura ajustada para 8 linhas */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    
+    <!-- Elemento auxiliar para detecção de fontes --><div id="font-detector">mOxWM</div>
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        
+        <!-- 1. Menu Lateral (Sidebar) --><div id="menu" class="sidebar w-full md:w-80 bg-white p-6 shadow-2xl overflow-y-auto">
+            
+            <!-- Input de Texto --><div class="mb-6">
+                <label for="inputText" class="block text-sm font-medium text-gray-700 mb-2">Texto a Exibir:</label>
+                <textarea id="inputText" rows="2" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out resize-none" placeholder="Digite seu texto aqui..."></textarea>
+            </div>
+            
+            <!-- Input de Tamanho de Fonte --><div class="mb-6">
+                <label for="fontSize" class="block text-sm font-medium text-gray-700 mb-2">Tamanho da Fonte (px):</label>
+                <input type="number" id="fontSize" value="24" min="8" max="72" step="1" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out">
+            </div>
+
+            <!-- Área de Entrada de Fontes do Usuário --><div class="border-t pt-4">
+                <!-- TÍTULO ATUALIZADO: NOVO TEXTO EM ITÁLICO -->
+                <label for="fontListInput" class="block text-sm font-medium text-gray-700 mb-2">
+                    Família de Fontes em exibição<br>
+                    <span class="text-sm text-gray-500 italic">(cole ou arraste um arquivo .txt aqui)</span>
+                </label>
+                <textarea id="fontListInput" rows="8" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out font-mono text-xs" 
+                    placeholder="Cole aqui as famílias de fontes. Uma por linha, ex:&#10;Arial&#10;Verdana&#10;Roboto"></textarea>
+
+                <!-- Botão para acessar a API Local Font Access -->
+                <div class="mt-4">
+                    <button id="accessFontsButton" class="w-full px-4 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out bg-purple-600 text-white hover:bg-purple-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                        Listar Fontes Locais
+                    </button>
+                    <!-- TEXTO ATUALIZADO COM NEGRITO (font-bold) -->
+                    <p class="text-xs text-gray-500 mt-1 italic text-center">Requer <span class="font-bold">sua permissão</span> de acesso</p>
+                </div>
+                <!-- FIM NOVO BOTÃO -->
+
+                <!-- Controles de Exibição e Filtro (Checkboxes com 'checked' removido) -->
+                <div class="mt-4 space-y-2">
+                    <label class="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                        <input type="checkbox" id="showVariationsCheckbox" class="form-checkbox h-5 w-5 text-blue-600 rounded">
+                        <span class="ml-2">Exibir Variações (Bold, Italic, etc.)</span>
+                    </label>
+                    <label class="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                        <input type="checkbox" id="filterInstalledCheckbox" class="form-checkbox h-5 w-5 text-green-600 rounded">
+                        <span class="ml-2">Somente as Detectadas</span>
+                    </label>
+                </div>
+                <!-- Fim Controles -->
+                
+                <!-- Caixa de Compatibilidade --><div class="text-xs text-gray-500 mt-4 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p class="font-bold mb-1">Compatibilidade:</p>
+                    <p>
+                        <span class="text-green-600 font-bold">Verde</span> - Variação da fonte detectada
+                        <br>
+                        <span class="text-red-600 font-bold">Vermelho</span> - Variação da fonte não detectada
+                    </p>
+                </div>
+            </div>
+            <!-- Fim: Área de Entrada de Fontes do Usuário -->
+            
+            <!-- Rodapé do Menu Lateral --><div class="mt-8 pt-4 text-center text-xs text-gray-500 border-t border-gray-100">
+                Desenvolvido por <a href="https://www.instagram.com/estudioetech" target="_blank" rel="noopener noreferrer" class="font-semibold text-blue-400 hover:text-blue-300 transition duration-150">@estudioetech</a> 2025
+            </div>
+
+        </div>
+
+        <!-- 2. Área de Conteúdo Principal --><div class="content-area flex-1 overflow-y-auto pt-6">
+            <div id="output" class="p-4 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Fichas de Fonte serão renderizadas aqui --></div>
+            <!-- Mensagem de feedback (exemplo) --><div id="feedbackMessage" class="hidden text-center p-8 text-lg text-gray-500">
+                Por favor, insira os nomes das fontes na caixa de texto ao lado para começar a visualizar.
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- 3. Rodapé de Paginação -->
+    <div id="pagination-footer" class="pagination-footer w-full bg-white border-t border-gray-200 p-4 shadow-2xl">
+        <div class="flex justify-between items-center">
+            
+            <!-- Container para os botões de comparação (LEFT) -->
+            <div id="comparison-controls" class="flex items-center space-x-4">
+                <!-- Status com contagem em formato de 'badge' -->
+                <div class="flex space-x-3 items-center text-sm font-medium bg-gray-100 p-2 rounded-full shadow-inner">
+                    <div class="whitespace-nowrap px-3">
+                        Listadas: <span id="listCount" class="font-bold text-blue-600">0</span>
+                    </div>
+                    <div class="whitespace-nowrap px-3">
+                        Detectadas: <span id="detectedCount" class="font-bold text-green-600">0</span>
+                    </div>
+                    <div class="whitespace-nowrap px-3">
+                        Não Detectadas: <span id="notDetectedCount" class="font-bold text-red-600">0</span> 
+                    </div>
+                </div>
+                
+                <!-- Botão de Comparação -->
+                <button id="compareButton" class="px-4 py-2 text-sm font-medium rounded-full transition duration-150 ease-in-out bg-indigo-500 text-white hover:bg-indigo-600 shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Comparar (<span id="selectedCount">0</span>) Variações
+                </button>
+                <!-- Botões de controle de visualização (escondidos até o modo comparação) -->
+                <button id="downloadComparisonButton" class="px-4 py-2 text-sm font-medium rounded-full transition duration-150 ease-in-out bg-green-500 text-white hover:bg-green-600 shadow-md hidden">
+                    Download (.PNG)
+                </button>
+                <button id="clearSelectionButton" class="px-4 py-2 text-sm font-medium rounded-full transition duration-150 ease-in-out bg-gray-300 text-gray-800 hover:bg-gray-400 shadow-md hidden">
+                    Limpar Seleção
+                </button>
+                <button id="showAllButton" class="px-4 py-2 text-sm font-medium rounded-full transition duration-150 ease-in-out bg-blue-500 text-white hover:bg-blue-600 shadow-md hidden">
+                    Mostrar Todas as Variações
+                </button>
+            </div>
+            
+            <!-- Container para os controles de navegação (RIGHT) -->
+            <div id="pagination-controls" class="flex justify-center items-center space-x-2">
+                <!-- Botões de Paginação serão renderizados aqui pelo JS -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Lista padrão inicial com famílias de fontes comuns para teste
+        const DEFAULT_FONT_LIST = [
+            'Arial', 'Verdana', 'Helvetica', 'Roboto', 'Times New Roman', 'Courier New', 'Georgia', 
+            'Impact', 'Trebuchet MS', 'Comic Sans MS', 
+            'NonExistentFontExample' // Exemplo para testar falha
+        ].join('\n');
+
+        // --- Definições de Variações Padrão ---
+        const VARIATIONS = [
+            { weight: 'normal', style: 'normal', suffix: 'Regular' },
+            { weight: 'bold', style: 'normal', suffix: 'Bold' },
+            { weight: 'normal', style: 'italic', suffix: 'Italic' },
+            { weight: 'bold', style: 'italic', suffix: 'Bold Italic' }
+        ];
+
+        // --- Font Detection Constants ---
+        const baseFonts = ['monospace', 'sans-serif', 'serif'];
+        const testText = 'mOxWM'; 
+
+        // Configuration
+        const FONTS_PER_PAGE = 100;
+        let currentPage = 1;
+
+        // State variables
+        let currentFontList = []; // Contém variações instaladas E não instaladas
+        let displayedFontList = []; // A lista atualmente sendo renderizada (filtrada ou comparada)
+        let totalPages = 0; 
+        let isComparing = false; 
+        let selectedFonts = new Set(); // Armazena IDs de variação selecionados
+        
+        // State variables for filters
+        let showVariations = false; // Exibir Variações
+        let filterInstalled = false; // Somente as Detectadas
+        
+        // NOVO: Lista de fontes locais obtidas via API (se houver permissão)
+        let localFontsList = []; 
+
+        // DOM elements
+        const outputElement = document.getElementById('output');
+        const inputTextarea = document.getElementById('inputText');
+        const fontSizeInput = document.getElementById('fontSize');
+        const fontListInput = document.getElementById('fontListInput'); 
+        const paginationControls = document.getElementById('pagination-controls');
+        // Checkboxes 
+        const showVariationsCheckbox = document.getElementById('showVariationsCheckbox');
+        const filterInstalledCheckbox = document.getElementById('filterInstalledCheckbox');
+        // IDs para as 3 contagens
+        const listCountSpan = document.getElementById('listCount');
+        const detectedCountSpan = document.getElementById('detectedCount'); 
+        const notDetectedCountSpan = document.getElementById('notDetectedCount'); 
+        
+        const feedbackMessage = document.getElementById('feedbackMessage');
+        const detectorElement = document.getElementById('font-detector'); 
+        // Comparison elements
+        const compareButton = document.getElementById('compareButton');
+        const selectedCountSpan = document.getElementById('selectedCount');
+        const clearSelectionButton = document.getElementById('clearSelectionButton');
+        const showAllButton = document.getElementById('showAllButton');
+        const downloadComparisonButton = document.getElementById('downloadComparisonButton'); 
+        
+        // NOVO: Botão da API
+        const accessFontsButton = document.getElementById('accessFontsButton');
+
+
+        // --- Helper Function: Temporary Feedback Message ---
+        /**
+         * Exibe uma mensagem de feedback temporária no canto superior direito.
+         */
+        function displayMessage(message, color) {
+            const feedback = document.createElement('div');
+            feedback.className = `fixed top-4 right-4 z-50 p-4 rounded-xl shadow-xl text-white ${color === 'green' ? 'bg-green-600' : 'bg-red-600'} transition-opacity duration-300 max-w-sm`;
+            feedback.textContent = message;
+            document.body.appendChild(feedback);
+
+            setTimeout(() => {
+                feedback.remove();
+            }, 5000);
+        }
+
+        // --- New Function: Local Font Access API ---
+        /**
+         * Requests user permission and fetches the list of local font families using the Local Font Access API.
+         * Populates the fontListInput textarea upon success.
+         */
+        async function requestLocalFontAccess() {
+            // 1. Check for API support
+            if (!('queryLocalFonts' in window)) {
+                displayMessage("Seu navegador não suporta a 'Local Font Access API'. Tente usar o Google Chrome ou Edge atualizados.", 'red');
+                return;
+            }
+            
+            // Disable button and show loading
+            accessFontsButton.disabled = true;
+            accessFontsButton.textContent = 'Solicitando Acesso...';
+            
+            try {
+                // 2. Request permission and fetch fonts
+                const fonts = await window.queryLocalFonts();
+                
+                // 3. Process the results (extract unique family names)
+                // Note: The API returns different entries for variations, we only want the unique family name.
+                localFontsList = fonts.map(font => font.family).filter((f, i, arr) => arr.indexOf(f) === i);
+                
+                // 4. Update the textarea with the new list
+                fontListInput.value = localFontsList.join('\n');
+                
+                displayMessage(`Sucesso! ${localFontsList.length} famílias de fontes locais carregadas.`, 'green');
+                
+                clearSelection(); // Limpa a seleção e força o re-render
+                updateApp(true);
+                
+            } catch (err) {
+                // TRATAMENTO DE ERRO PARA O SECURITY ERROR REPORTADO
+                if (err.name === 'NotAllowedError') {
+                    displayMessage('Acesso negado pelo usuário. Não foi possível listar as fontes. Tente novamente.', 'red');
+                } else if (err.name === 'SecurityError' && err.message.includes('Permissions Policy')) {
+                    // Trata o erro de Permissions Policy, que é o que vimos no console.
+                    console.error("Erro de Permissions Policy:", err);
+                    displayMessage("Erro de Segurança: A API de Fontes Locais está bloqueada pelas políticas de permissão do ambiente (iframe/hospedagem). Por favor, cole uma lista de fontes comuns manually.", 'red');
+                } else {
+                    console.error("Erro desconhecido ao acessar fontes locais:", err);
+                    displayMessage(`Erro ao acessar fontes locais: ${err.message}`, 'red');
+                }
+            } finally {
+                // Re-enable button and reset text
+                accessFontsButton.disabled = false;
+                accessFontsButton.textContent = 'Listar Fontes Locais'; // TEXTO ATUALIZADO
+            }
+        }
+        // --- End Local Font Access API ---
+
+
+        // --- D&D Handlers ---
+
+        /**
+         * Handle file drop onto the textarea.
+         * Only accepts plain text files (.txt).
+         */
+        function handleFileDrop(e) {
+            // Remove feedback class
+            fontListInput.classList.remove('border-blue-500', 'border-4', 'bg-blue-50');
+
+            const files = e.dataTransfer.files;
+
+            if (files.length > 0) {
+                const file = files[0];
+                
+                // Check if the file is a plain text file or has a .txt extension
+                if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        // Set the content of the file to the textarea
+                        fontListInput.value = event.target.result;
+                        clearSelection(); // Clear selection and update app
+                        updateApp(true);
+                    };
+                    reader.readAsText(file);
+                } else {
+                    // Simple inline message box simulation since alert() is forbidden
+                    const errorMessage = "Atenção: Apenas arquivos de texto (.txt) são suportados para carregar listas de fontes via arrastar e soltar. O aplicativo não consegue ler o nome de fontes diretamente de arquivos .ttf ou .otf por questões de segurança do navegador.";
+                    
+                    const feedback = document.createElement('div');
+                    feedback.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                    feedback.innerHTML = `
+                        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm text-center">
+                            <h3 class="text-lg font-bold text-red-600 mb-4">Arquivo Não Suportado</h3>
+                            <p class="text-sm text-gray-700">${errorMessage}</p>
+                            <button onclick="this.parentElement.parentElement.remove()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Entendi</button>
+                        </div>
+                    `;
+                    document.body.appendChild(feedback);
+                }
+            }
+        }
+        
+        /**
+         * Parses the font families from the textarea and generates a list of ALL requested variations,
+         * marking each one with its installation status.
+         */
+        function parseFontList() {
+            const rawList = fontListInput.value.split('\n');
+            const processedList = rawList
+                .map(font => font.trim())
+                .filter(font => font.length > 0);
+            
+            const uniqueFamilies = [...new Set(processedList)]; 
+
+            let variationsList = [];
+            
+            // Determina quais variações testar
+            const variationsToTest = showVariations ? VARIATIONS : [VARIATIONS[0]]; 
+
+            // 1. Itera sobre cada família listada
+            uniqueFamilies.forEach(family => {
+                
+                // 2. Itera sobre as variações definidas (apenas Regular ou as 4)
+                variationsToTest.forEach(v => {
+                    // 3. Verifica se a variação da família está instalada (usando método fallback)
+                    const isInstalled = checkFontInstalled(family, v.weight, v.style);
+                    
+                    // 4. Adiciona a variação à lista
+                    variationsList.push({
+                        family: family,
+                        weight: v.weight,
+                        style: v.style,
+                        suffix: v.suffix, 
+                        id: `${family}-${v.weight}-${v.style}`, 
+                        isInstalled: isInstalled 
+                    });
+                });
+            });
+
+            currentFontList = variationsList; // Lista principal agora contém todas as variações solicitadas
+            
+            // 5. Atualiza a contagem de estatísticas
+            updateStatCounts(uniqueFamilies);
+        }
+
+        /**
+         * Checks if a specific font family + style + weight is installed on the system. (Legacy method)
+         */
+        function checkFontInstalled(fontFamily, fontWeight = 'normal', fontStyle = 'normal') {
+            let isInstalled = false;
+            
+            // Aplica o peso e estilo para o elemento detector
+            detectorElement.style.fontWeight = fontWeight;
+            detectorElement.style.fontStyle = fontStyle;
+
+            for (const baseFont of baseFonts) {
+                // 1. Mede a largura do texto com a fonte base (fallback)
+                detectorElement.style.fontFamily = baseFont;
+                const baseWidth = detectorElement.offsetWidth;
+                
+                // 2. Mede a largura do texto com a fonte + estilo que queremos testar
+                detectorElement.style.fontFamily = `'${fontFamily.replace(/'/g, "\\'")}', ${baseFont}`;
+                const testWidth = detectorElement.offsetWidth;
+                
+                // Se as larguras forem diferentes, a fonte (naquele estilo) está instalada
+                if (baseWidth !== testWidth) {
+                    isInstalled = true;
+                    break;
+                }
+            }
+            
+            // Reset styles after test
+            detectorElement.style.fontFamily = ''; 
+            detectorElement.style.fontWeight = 'normal';
+            detectorElement.style.fontStyle = 'normal';
+            
+            return isInstalled;
+        }
+
+        /**
+         * Updates the stat counts in the footer based on unique families.
+         */
+        function updateStatCounts(uniqueFamilies) {
+            const totalCount = uniqueFamilies.length;
+            let detectedFamilyCount = 0;
+            
+            // Uma família é considerada 'Detectada' se pelo menos UMA de suas 4 variações for encontrada.
+            uniqueFamilies.forEach(family => {
+                const variationsToCheck = VARIATIONS; 
+
+                if (variationsToCheck.some(v => checkFontInstalled(family, v.weight, v.style))) {
+                    detectedFamilyCount++;
+                }
+            });
+
+            listCountSpan.textContent = totalCount;
+            detectedCountSpan.textContent = detectedFamilyCount; 
+            notDetectedCountSpan.textContent = totalCount - detectedFamilyCount; 
+        }
+
+        /**
+         * Gets the list of font VARIATIONS to be displayed based on current filters/comparison mode.
+         */
+        function getFontsToDisplay() {
+            parseFontList(); // Gera a lista de variações solicitadas, marcando a instalação.
+
+            let list = currentFontList; 
+
+            // Aplica o filtro "Somente as Detectadas"
+            if (filterInstalled) {
+                list = list.filter(variation => variation.isInstalled);
+            }
+
+            // Aplica filtro de comparação
+            if (isComparing) {
+                // Filtra a lista atual para incluir apenas variações selecionadas pelo ID
+                list = list.filter(variation => selectedFonts.has(variation.id));
+                // ADICIONAL: Filtra para mostrar APENAS as detectadas, o que é o comportamento esperado para comparação.
+                // Embora o usuário possa selecionar não detectadas, o uso em um projeto offline é inviável,
+                // então forçamos a exclusão aqui para uma experiência de comparação mais realista.
+                list = list.filter(variation => variation.isInstalled);
+            }
+            
+            return list;
+        }
+
+        /**
+         * Renders the font cards for the current page.
+         */
+        function renderCards() {
+            displayedFontList = getFontsToDisplay(); // Obtém a lista de variações filtrada
+
+            const text = inputTextarea.value.trim() || "Insira aqui o seu texto de teste";
+            const size = parseInt(fontSizeInput.value) || 24;
+
+            totalPages = Math.ceil(displayedFontList.length / FONTS_PER_PAGE);
+            
+            // Check for empty list
+            const isEmpty = displayedFontList.length === 0;
+
+            if (isEmpty) {
+                 feedbackMessage.classList.remove('hidden');
+                 outputElement.classList.add('hidden');
+                 outputElement.innerHTML = '';
+                 paginationControls.innerHTML = '';
+                 return;
+            } else {
+                 feedbackMessage.classList.add('hidden');
+                 outputElement.classList.remove('hidden');
+            }
+
+
+            const startIndex = (currentPage - 1) * FONTS_PER_PAGE;
+            const endIndex = startIndex + FONTS_PER_PAGE;
+            const fontsToDisplay = displayedFontList.slice(startIndex, endIndex);
+
+            let cardsHtml = '';
+            // Itera sobre os OBJETOS de variação
+            fontsToDisplay.forEach(variation => {
+                cardsHtml += createFontCard(variation, text, size, selectedFonts.has(variation.id));
+            });
+
+            outputElement.innerHTML = cardsHtml;
+
+            // Reattach event listeners for checkboxes after rendering
+            document.querySelectorAll('.font-select-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', handleFontSelection);
+            });
+
+            // Update button states
+            updateCompareButtonState();
+            renderPagination();
+        }
+        
+        /**
+         * Generates the HTML for a single font card, taking a variation object.
+         */
+        function createFontCard(fontVariation, text, size, isSelected) {
+            const { id, family, weight, style, suffix, isInstalled } = fontVariation; 
+
+            // Define o nome de exibição no card
+            const cardDisplayName = showVariations ? `${family} ${suffix}` : family;
+
+            // Define a classe da cor da borda com base no status de instalação
+            const borderColorClass = isInstalled ? 'border-green-400' : 'border-red-400';
+            const nameColorClass = isInstalled ? 'text-green-600' : 'text-red-600';
+            
+            // A classe do cartão deve usar a cor da borda
+            const cardClass = `bg-white p-4 rounded-xl shadow-lg border-2 ${borderColorClass} hover:shadow-xl transition duration-300 transform hover:scale-[1.02] break-inside-avoid relative`; 
+            
+            // Display Name (e.g., Arial Bold Italic or just Arial)
+            let nameHtml = `<p class="text-xs font-mono mb-2 truncate font-bold ${nameColorClass}" title="${cardDisplayName}">
+                ${cardDisplayName}
+            </p>`;
+            
+            let textHtml = '';
+            if (!isInstalled) {
+                 // Estilo para fonte não detectada
+                 textHtml = `
+                    <div class="relative">
+                        <!-- Usar uma fonte genérica com o estilo solicitado para comparação visual, mas opaca -->
+                        <div style="font-family: sans-serif; font-size: ${size}px; line-height: 1.2; font-weight: ${weight}; font-style: ${style};" class="text-gray-400 opacity-50 blur-[1px]">
+                            ${text}
+                        </div>
+                        <div class="absolute inset-0 flex items-center justify-center bg-red-100 bg-opacity-70 rounded-lg">
+                            <span class="text-red-700 font-bold text-sm tracking-wider">NÃO DETECTADA</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                 // Estilo para fonte detectada
+                 textHtml = `
+                    <div style="font-family: '${family.replace(/'/g, "\\'")}', sans-serif; font-size: ${size}px; line-height: 1.2; font-weight: ${weight}; font-style: ${style};" class="text-gray-800 break-words">
+                        ${text}
+                    </div>
+                `;
+            }
+
+            // Checkbox agora usa o ID único da variação para controle de seleção
+            let checkboxHtml = '';
+            
+            // NOVO: Renderiza o checkbox SOMENTE se a fonte (variação) estiver instalada
+            if (isInstalled) {
+                checkboxHtml = `
+                    <!-- Checkbox for selection (somente se a fonte for detectada) -->
+                    <input type="checkbox" data-font-id="${id}" class="font-select-checkbox absolute top-4 right-4 h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" ${isSelected ? 'checked' : ''}>
+                `;
+            }
+
+            return `
+                <div class="${cardClass}">
+                    ${checkboxHtml}
+                    ${nameHtml}
+                    ${textHtml}
+                </div>
+            `;
+        }
+        
+        // --- MODIFICADO: Lógica de Paginação com Números ---
+        
+        /**
+         * Cria o HTML para um único botão de página, destacando o ativo.
+         */
+        function createPageButton(pageNumber) {
+            const isActive = (pageNumber === currentPage);
+            
+            // Estilos baseados na imagem:
+            // Ativo: Fundo azul, texto branco, formato de círculo (arredondado)
+            // Inativo: Fundo branco/cinza claro, texto escuro
+            const activeClasses = 'bg-blue-600 text-white z-10';
+            const defaultClasses = 'bg-white text-gray-700 hover:bg-gray-100';
+            
+            return `
+                <button onclick="changePage(${pageNumber})" 
+                        class="px-4 py-2 text-sm font-medium rounded-full transition duration-150 ease-in-out shadow-sm ${isActive ? activeClasses : defaultClasses}"
+                        ${isActive ? 'disabled' : ''}>
+                    ${pageNumber}
+                </button>
+            `;
+        }
+
+        /**
+         * Renders the pagination controls in the footer. (LÓGICA ATUALIZADA)
+         */
+        function renderPagination() {
+            // Limpa os controles
+            paginationControls.innerHTML = '';
+
+            // Não renderiza nada se houver apenas 1 página
+            if (totalPages <= 1) {
+                return;
+            }
+
+            let paginationHtml = '';
+
+            // 1. Botão "Anterior"
+            paginationHtml += `
+                <button onclick="changePage(${currentPage - 1})" 
+                        class="px-4 py-2 text-sm font-medium rounded-full transition duration-150 ease-in-out bg-gray-200 text-gray-800 hover:bg-gray-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        ${currentPage === 1 ? 'disabled' : ''}>
+                    &laquo; Anterior
+                </button>
+            `;
+            
+            // 2. Lógica dos Botões de Página Numéricos
+            const pageLinks = [];
+
+            // Adiciona a primeira página
+            pageLinks.push(createPageButton(1));
+
+            // Adiciona "..." (reticências) se a página atual estiver longe do início (ex: > página 3)
+            if (currentPage > 3) {
+                pageLinks.push('<span class="px-4 py-2 text-sm font-medium text-gray-700">...</span>');
+            }
+
+            // Adiciona as páginas ao redor da página atual (atual-1, atual, atual+1)
+            for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                // Só adiciona se for > 1 (pois a 1 já está) e < totalPages (pois a última já estará)
+                if (i > 1 && i < totalPages) {
+                    pageLinks.push(createPageButton(i));
+                }
+            }
+
+            // Adiciona "..." (reticências) se a página atual estiver longe do fim (ex: < totalPages-2)
+            if (currentPage < totalPages - 2) {
+                pageLinks.push('<span class="px-4 py-2 text-sm font-medium text-gray-700">...</span>');
+            }
+
+            // Adiciona a última página (garantindo que não seja a mesma que a primeira)
+            if (totalPages > 1) {
+                pageLinks.push(createPageButton(totalPages));
+            }
+            
+            paginationHtml += pageLinks.join('');
+
+
+            // 3. Botão "Próximo"
+            paginationHtml += `
+                <button onclick="changePage(${currentPage + 1})" 
+                        class="px-4 py-2 text-sm font-medium rounded-full transition duration-150 ease-in-out bg-gray-200 text-gray-800 hover:bg-gray-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        ${currentPage === totalPages ? 'disabled' : ''}>
+                Próxima &raquo;
+                </button>
+            `;
+
+            paginationControls.innerHTML = paginationHtml;
+        }
+
+        // --- Fim da Modificação de Paginação ---
+
+
+        /**
+         * Changes the current page and re-renders the cards.
+         */
+        function changePage(newPage) {
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderCards();
+                // Rola para o topo da área de conteúdo para visualizar o início da nova página
+                document.querySelector('.content-area').scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        /**
+         * Handles font selection/deselection via checkboxes (uses ID).
+         */
+        function handleFontSelection(event) {
+            // Note: Usa o ID da variação (family-weight-style)
+            const fontId = event.target.dataset.fontId; 
+            if (event.target.checked) {
+                selectedFonts.add(fontId);
+            } else {
+                selectedFonts.delete(fontId);
+            }
+            updateCompareButtonState();
+        }
+
+        /**
+         * Updates the state of the comparison button.
+         */
+        function updateCompareButtonState() {
+            selectedCountSpan.textContent = selectedFonts.size;
+            compareButton.disabled = selectedFonts.size < 2; // Needs at least 2 variations for comparison
+            
+            // Show/hide comparison related buttons
+            if (isComparing) {
+                compareButton.classList.add('hidden');
+                downloadComparisonButton.classList.remove('hidden'); // MOSTRA O BOTÃO DE DOWNLOAD
+                clearSelectionButton.classList.remove('hidden');
+                showAllButton.classList.remove('hidden');
+            } else {
+                compareButton.classList.remove('hidden');
+                downloadComparisonButton.classList.add('hidden'); // ESCONDE O BOTÃO DE DOWNLOAD
+                clearSelectionButton.classList.add('hidden');
+                showAllButton.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Initiates comparison mode.
+         */
+        function startComparison() {
+            // Antes de iniciar a comparação, limpa a seleção de variações NÃO detectadas
+            // para que o modo de comparação só exiba fontes realmente instaladas,
+            // garantindo que a imagem de download seja precisa.
+            const tempSelectedFonts = new Set();
+            currentFontList.forEach(variation => {
+                if (selectedFonts.has(variation.id) && variation.isInstalled) {
+                    tempSelectedFonts.add(variation.id);
+                }
+            });
+            selectedFonts = tempSelectedFonts;
+            
+            if (selectedFonts.size >= 2) {
+                isComparing = true;
+                updateApp(true); // Reset page to 1 for comparison view
+            } else {
+                 displayMessage("Por favor, selecione pelo menos 2 variações de fontes detectadas para comparar.", 'red');
+            }
+        }
+
+        /**
+         * Clears selected fonts and reverts to normal viewing mode.
+         */
+        function clearSelection() {
+            selectedFonts.clear(); 
+            
+            updateCompareButtonState(); 
+            
+            // If currently in comparison mode, exit it
+            if (isComparing) {
+                isComparing = false;
+                updateApp(true); // Reset page and render all
+            } else {
+                // If not in comparison, just re-render to reflect cleared checkboxes
+                renderCards(); 
+            }
+        }
+
+        /**
+         * Exits comparison mode and shows all filtered fonts.
+         */
+        function showAllFonts() {
+            isComparing = false;
+            updateApp(true); // Reset page and render all
+        }
+        
+        // Função para gerar o nome do arquivo dinâmico
+        function getDynamicFilename() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            // Formato: Comparacao_YYYY-MM-DD_HH-MM-SS.png
+            return `Comparacao_${year}-${month}-${day}_${hours}-${minutes}-${seconds}.png`;
+        }
+
+        /**
+         * Creates a PNG image showing the selected fonts side-by-side for comparison.
+         * The image is generated on a hidden canvas.
+         */
+        function downloadComparisonImage() {
+            const text = inputTextarea.value.trim() || "Insira aqui o seu texto de teste";
+            const size = parseInt(fontSizeInput.value) || 24;
+            // Filtra novamente a lista de fontes SELECIONADAS E DETECTADAS para garantir a precisão
+            const selectedFontDetails = currentFontList.filter(f => selectedFonts.has(f.id) && f.isInstalled);
+            
+            if (selectedFontDetails.length === 0) {
+                displayMessage("Nenhuma fonte detectada selecionada para download.", 'red');
+                return;
+            }
+
+            // --- Canvas Setup ---
+            const CANVAS_WIDTH = 800;
+            const PADDING = 30;
+            const FOOTER_HEIGHT = 40; // Espaço para o rodapé
+            const CARD_HEIGHT = 100; 
+            const TITLE_HEIGHT = 50;
+            
+            const FONT_LINE_HEIGHT = size * 1.2; 
+
+            // Altura total: Título + (Número de Fontes * Altura do Card) + Padding extra + Rodapé
+            const CANVAS_HEIGHT = TITLE_HEIGHT + (selectedFontDetails.length * CARD_HEIGHT) + PADDING + FOOTER_HEIGHT;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = CANVAS_WIDTH;
+            canvas.height = CANVAS_HEIGHT;
+            const ctx = canvas.getContext('2d');
+
+            // --- Desenho do Fundo e Título ---
+            ctx.fillStyle = '#ffffff'; // Fundo branco
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            // TÍTULO
+            ctx.font = 'bold 20px Inter, sans-serif'; 
+            ctx.fillStyle = '#1f2937'; 
+            ctx.fillText('Comparador GRÁTIS de Fontes', PADDING, 30);
+            
+            let currentY = TITLE_HEIGHT;
+
+            // --- Desenho de Cada Fonte ---
+            selectedFontDetails.forEach((fontData) => {
+                const { family, weight, style, suffix } = fontData;
+                const displayName = showVariations ? `${family} ${suffix}` : family;
+                
+                const cardY = currentY;
+                
+                // 1. Desenha Separador (linha horizontal)
+                ctx.strokeStyle = '#e5e7eb'; // Cinza claro
+                ctx.beginPath();
+                ctx.moveTo(PADDING, cardY);
+                ctx.lineTo(CANVAS_WIDTH - PADDING, cardY);
+                ctx.stroke();
+
+                // 2. Desenha Nome da Fonte (simplificado)
+                ctx.font = 'bold 14px Inter, sans-serif';
+                ctx.fillStyle = '#1f2937'; 
+                ctx.textAlign = 'left'; // Alinhamento padrão
+                ctx.fillText(displayName, PADDING, cardY + 20);
+
+                // 3. Desenha Texto de Amostra
+                let textY = cardY + 20 + 10; 
+
+                // Aplica a fonte, peso e estilo reais para renderização (sem fallback, pois a lista foi filtrada)
+                ctx.font = `${style} ${weight} ${size}px '${family}', sans-serif`;
+                ctx.fillStyle = '#1f2937'; 
+                ctx.fillText(text, PADDING, textY + FONT_LINE_HEIGHT);
+
+                currentY += CARD_HEIGHT; // Move para a próxima posição
+            });
+            
+            // --- Desenho do Rodapé ---
+            const footerY = CANVAS_HEIGHT - FOOTER_HEIGHT + 25; // Posição para o texto
+            
+            // Linha separadora do rodapé
+            ctx.strokeStyle = '#e5e7eb'; 
+            ctx.beginPath();
+            ctx.moveTo(PADDING, CANVAS_HEIGHT - FOOTER_HEIGHT);
+            ctx.lineTo(CANVAS_WIDTH - PADDING, CANVAS_HEIGHT - FOOTER_HEIGHT);
+            ctx.stroke();
+            
+            // Texto do Rodapé
+            ctx.font = '12px Inter, sans-serif';
+            ctx.fillStyle = '#6b7280'; // Cinza
+            ctx.textAlign = 'center';
+            ctx.fillText('2025 - Estúdio E-Tech    @estudioetech', CANVAS_WIDTH / 2, footerY);
+            ctx.textAlign = 'left'; // Reset alignment
+
+            // --- Gatilho de Download ---
+            const imageURL = canvas.toDataURL('image/png');
+            
+            // USA O NOME DE ARQUIVO DINÂMICO
+            const filename = getDynamicFilename(); 
+
+            const link = document.createElement('a');
+            link.href = imageURL;
+            link.download = filename; // Nome dinâmico
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            displayMessage(`Imagem de comparação baixada! Nome do arquivo: ${filename}`, 'green');
+        }
+
+
+        /**
+         * Updates the entire application (cards and pagination).
+         * @param {boolean} resetPage - Whether to reset the page to 1.
+         */
+        function updateApp(resetPage = true) {
+            if (resetPage) {
+                currentPage = 1; 
+            }
+            renderCards();
+        }
+
+        /**
+         * Initializes the application.
+         */
+        function init() {
+            // Define o objeto window.changePage globalmente (necessário para o onclick no HTML gerado)
+            window.changePage = changePage; 
+
+            inputTextarea.value = "Insira aqui o seu texto de teste";
+            fontListInput.value = DEFAULT_FONT_LIST;
+            
+            detectorElement.textContent = testText; 
+
+            // Set initial state from DOM elements
+            showVariations = showVariationsCheckbox.checked; 
+            filterInstalled = filterInstalledCheckbox.checked;
+
+
+            // Setup general event listeners
+            inputTextarea.addEventListener('input', () => updateApp(true));
+            fontSizeInput.addEventListener('input', () => updateApp(true));
+            fontListInput.addEventListener('input', () => {
+                clearSelection(); // Clear selection when the list changes
+                updateApp(true);
+            }); 
+            
+            // Checkbox listeners
+            showVariationsCheckbox.addEventListener('change', (e) => {
+                showVariations = e.target.checked;
+                clearSelection();
+                updateApp(true);
+            });
+            filterInstalledCheckbox.addEventListener('change', (e) => {
+                filterInstalled = e.target.checked;
+                clearSelection();
+                updateApp(true);
+            });
+
+
+            // Comparison button listeners
+            compareButton.addEventListener('click', startComparison);
+            clearSelectionButton.addEventListener('click', clearSelection);
+            showAllButton.addEventListener('click', showAllFonts);
+            downloadComparisonButton.addEventListener('click', downloadComparisonImage); 
+            
+            // NOVO: Listener para o botão da API
+            accessFontsButton.addEventListener('click', requestLocalFontAccess);
+
+            // --- Drag-and-Drop Listeners for fontListInput ---
+            
+            // Prevent default behavior (browser opening file) for all D&D events
+            ['dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fontListInput.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            // Visual feedback when dragging over
+            fontListInput.addEventListener('dragover', () => {
+                fontListInput.classList.add('border-blue-500', 'border-4', 'bg-blue-50');
+            });
+
+            // Remove visual feedback when dragging leaves
+            fontListInput.addEventListener('dragleave', () => {
+                fontListInput.classList.remove('border-blue-500', 'border-4', 'bg-blue-50');
+            });
+
+            // Handle the dropped file
+            fontListInput.addEventListener('drop', handleFileDrop);
+            // -----------------------------------------------------
+
+            updateApp(true);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
